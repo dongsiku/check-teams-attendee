@@ -44,6 +44,7 @@ def read_excel():
             passwd = passwd_f.read().strip()
     else:
         passwd = getpass("Password: ")
+        passwd = passwd.strip()
 
     # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
     atendance_list = read_atendance_list(True)
