@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from getpass import getpass
 from tkinter import filedialog
+from datetime import datetime
 
 import win32com.client
 
@@ -52,8 +53,8 @@ def read_excel():
             EXCEL_FILENAME, False, False, None, passwd
         )
         worksheet = workbook.Worksheets[0]
-        mail_list = ""
-        name_list = ""
+        mail_list_str = ""
+        name_list_str = ""
         for i in range(60):
             temp_name = worksheet.Cells.Item(i + 1, 2).Value
             if temp_name is None:
@@ -63,12 +64,20 @@ def read_excel():
             if do_attend is False:
                 # print(temp_name, do_attend)
                 temp_mail = worksheet.Cells.Item(i + 1, 4)
-                mail_list += f"{temp_mail},"
-                name_list += f"{temp_name},"
-        print(name_list)
-        print(mail_list)
+                mail_list_str += f"{temp_mail},"
+                name_list_str += f"{temp_name},"
+        print(name_list_str)
+        print(mail_list_str)
+        export_result(name_list_str, mail_list_str)
     finally:
         excel.Quit()
+
+
+def export_result(name_list_str, mail_list_str):
+    datetime_str = f"{datetime.now():%Y/%m/%d %H:%M:%S}"
+    msg = f"{datetime_str}\n{name_list_str}\n{mail_list_str}\n"
+    with open("result.txt", "w", encoding="utf-8") as result_f:
+        result_f.write(msg)
 
 
 def format_name(name):
