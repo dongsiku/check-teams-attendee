@@ -32,7 +32,6 @@ def read_atendance_list(do_forcibly_open_gui_dialog=False):
 
 def read_excel():
     # 初期化する
-    atendance_list = read_atendance_list(True)
     EXCEL_FILENAME = Path("研究会用名簿_20210420.xlsx").resolve()
     PASSWD_FILENAME = Path("password.txt")
 
@@ -46,6 +45,7 @@ def read_excel():
         passwd = getpass("Password: ")
 
     # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
+    atendance_list = read_atendance_list(True)
     try:
         excel = win32com.client.Dispatch('Excel.Application')
         workbook = excel.Workbooks.Open(
