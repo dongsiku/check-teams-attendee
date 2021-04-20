@@ -2,13 +2,26 @@ import csv
 import re
 from pathlib import Path
 from getpass import getpass
+from tkinter import filedialog
 
 import win32com.client
 
 
-def read_atendance_list():
+def read_atendance_list(do_forcibly_open_gui_dialog=False):
+    # 出席者リストのファイルを選択する
+    meeting_attendance_list_csv = Path("meetingAttendanceList.csv")
+    if do_forcibly_open_gui_dialog is True or not meeting_attendance_list_csv.exists():
+        idir = "~/Downloads"
+        filetype = [("出席者リスト", "*.csv")]
+        meeting_attendance_list_csv = filedialog.askopenfilename(
+            filetypes=filetype, initialdir=idir
+        )
+        if meeting_attendance_list_csv == "":
+            raise FileNotFoundError("Canceled")
+
+    # 出席者リストのファイルからファイルを作成する
     attendees_list = []
-    with open("meetingAttendanceList.csv", encoding="utf-16") as meeting_attendance_list_f:
+    with open(meeting_attendance_list_csv, encoding="utf-16") as meeting_attendance_list_f:
         reader = csv.reader(meeting_attendance_list_f, delimiter="\t")
         for row in reader:
             temp_attendee_name = format_name(row[0])
@@ -18,7 +31,8 @@ def read_atendance_list():
 
 
 def read_excel():
-    atendance_list = read_atendance_list()
+    # 初期化する
+    atendance_list = read_atendance_list(True)
     EXCEL_FILENAME = Path("研究会用名簿_20210420.xlsx").resolve()
     PASSWD_FILENAME = Path("password.txt")
 
@@ -31,6 +45,7 @@ def read_excel():
     else:
         passwd = getpass("Password: ")
 
+    # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
     try:
         excel = win32com.client.Dispatch('Excel.Application')
         workbook = excel.Workbooks.Open(
@@ -57,6 +72,7 @@ def read_excel():
 
 
 def format_name(name):
+    # 氏名の空白文字の削除とアルファベットの小文字への統一を行う
     name = name.lower()
     name = re.sub(" |\u3000", "", name)
     return name
