@@ -25,7 +25,5 @@
     "editor.rulers": [
         80
     ],
-    "python.pythonPath": "C:\\Users\\dongsiku\\Desktop\\imclab\\check-attendee\\.env\\Scripts\\python.exe",
-    // "python.pythonPath": ".env\\Scripts\\python.exe",
     // "autoDocstring.docstringFormat": "google",
 }
