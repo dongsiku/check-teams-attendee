@@ -24,7 +24,9 @@ def read_atendance_list(do_forcibly_open_gui_dialog=False):
     attendees_list = []
     with open(meeting_attendance_list_csv, encoding="utf-16") as meeting_attendance_list_f:
         reader = csv.reader(meeting_attendance_list_f, delimiter="\t")
-        for row in reader:
+        for i, row in enumerate(reader):
+            if i == 0:  # headerをパスする
+                pass
             temp_attendee_name = format_name(row[0])
             attendees_list.append(temp_attendee_name)
     # print(attendees_list)
@@ -48,6 +50,7 @@ def read_excel():
 
     # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
     atendance_list = read_atendance_list(True)
+    absentee_list = []
     try:
         excel = win32com.client.Dispatch('Excel.Application')
         workbook = excel.Workbooks.Open(
@@ -55,7 +58,6 @@ def read_excel():
         )
         worksheet = workbook.Worksheets[0]
         mail_list_str = ""
-        name_list_str = ""
         for i in range(60):
             temp_name = worksheet.Cells.Item(i + 1, 2).Value
             if temp_name is None:
@@ -66,26 +68,35 @@ def read_excel():
                 # print(temp_name, do_attend)
                 temp_mail = worksheet.Cells.Item(i + 1, 4)
                 mail_list_str += f"{temp_mail},"
-                name_list_str += f"{temp_name},"
-        print(name_list_str)
-        print(mail_list_str)
-        export_result(name_list_str, mail_list_str)
+                absentee_list.append(temp_name)
+        if len(absentee_list) == 0:
+            print("学生全員の出席が確認できました")
+        else:
+            export_result(absentee_list, mail_list_str)
     finally:
         excel.Quit()
 
 
-def export_result(name_list_str, mail_list_str):
+def export_result(absentee_list, mail_list_str):
+    absentee_list_str = ""
+    for absentee in absentee_list:
+        absentee_list_str += f"{absentee.split('+',1)[0]}さん，"
+    absentee_list_str = absentee_list_str[0:-1]
+    teams_msg = f"現在，{absentee_list_str}の出席が確認できておりません"
+    print(f"氏名|\n{absentee_list_str}")
+    print(f"メアド|\n{mail_list_str}")
+    print(f"Teams message|\n{teams_msg}")
     datetime_str = f"{datetime.now():%Y/%m/%d %H:%M:%S}"
-    msg = f"{datetime_str}\n{name_list_str}\n{mail_list_str}\n"
+    msg = f"{datetime_str}\n{absentee_list_str}\n{mail_list_str}\n{teams_msg}\n"
     with open("result.txt", "w", encoding="utf-8") as result_f:
         result_f.write(msg)
 
 
-def format_name(name):
+def format_name(raw_name):
     # 氏名の空白文字の削除とアルファベットの小文字への統一を行う
-    name = name.lower()
-    name = re.sub(" |\u3000", "", name)
-    return name
+    formatted_name = raw_name.capitalize()
+    formatted_name = re.sub(" |\u3000", "+", formatted_name)
+    return formatted_name
 
 
 if __name__ == "__main__":
