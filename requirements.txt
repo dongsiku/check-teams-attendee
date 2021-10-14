@@ -1,7 +1,10 @@
 autopep8==1.5.7
+flake8==4.0.1
+mccabe==0.6.1
 packaging==21.0
 pip-review==1.1.0
-pycodestyle==2.7.0
+pycodestyle==2.8.0
+pyflakes==2.4.0
 pyparsing==2.4.7
-pywin32==301
+pywin32==302
 toml==0.10.2
