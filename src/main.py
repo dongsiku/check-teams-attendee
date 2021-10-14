@@ -35,12 +35,12 @@ def read_atendance_list(do_forcibly_open_gui_dialog=False):
 
 def read_excel():
     # 初期化する
-    EXCEL_FILENAME = Path("研究会用名簿_20210420.xlsx").resolve()
+    EXCEL_FILENAME = Path("研究会用名簿_20211014.xlsx").resolve()
     PASSWD_FILENAME = Path("password.txt")
 
     # 名簿とパスワードの存在を確認する
     if not EXCEL_FILENAME.exists():
-        print("研究会用名簿_20210420.xlsxをダウンロードしてください")
+        print("研究会用名簿_20211014.xlsxをダウンロードしてください")
     if PASSWD_FILENAME.exists():
         with open("password.txt", encoding="utf-8") as passwd_f:
             passwd = passwd_f.read().strip()
