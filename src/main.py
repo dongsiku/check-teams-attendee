@@ -10,13 +10,21 @@ import win32com.client
 
 class CheckTeamsAttendee:
     def __init__(self):
-        # 初期化する
+        """初期化する
+        """
         self.PROJ_DIRNAME = Path(__file__).resolve().parents[1]
         self.EXCEL_FILENAME = self.PROJ_DIRNAME / "研究会用名簿_20211014.xlsx"
         self.PASSWD_FILENAME = self.PROJ_DIRNAME / "password.txt"
         self.RESULT_FILENAME = self.PROJ_DIRNAME / "result.txt"
 
     def main(self):
+        """Main script
+
+        Raises:
+            FileNotFoundError: 名簿のエクセルファイルが見つからなかったとき
+            FileNotFoundError: パスワードファイルが見つからなかったとき
+            FileNotFoundError: ファイルの選択がキャンセルされたとき
+        """
         # Debug modeを判定する
         parser = argparse.ArgumentParser(
             description="Run program with debug mode."
@@ -58,6 +66,14 @@ class CheckTeamsAttendee:
         self.read_excel(attendees_list)
 
     def get_attendees_list_from_csv(self, meeting_attendance_list_csv: Path):
+        """出席者リストをCSVファイルから取得する
+
+        Args:
+            meeting_attendance_list_csv (Path): meetingAttendanceList.csvのパス
+
+        Returns:
+            list[str]: 出席者リスト
+        """
         # 出席者リストのファイルからファイルを作成する
         attendees_list = []
         with meeting_attendance_list_csv.open(
@@ -69,10 +85,14 @@ class CheckTeamsAttendee:
                     pass
                 temp_attendee_name = self.format_name(row[0])
                 attendees_list.append(temp_attendee_name)
-        # print(attendees_list)
         return attendees_list
 
     def read_excel(self, attendees_list: list[str]):
+        """名簿のエクセルファイルを読む
+
+        Args:
+            attendees_list (list[str]): 出席者リスト
+        """
         # Get password from password file
         with self.PASSWD_FILENAME.open(encoding="utf-8") as passwd_f:
             passwd = passwd_f.read().strip()
@@ -104,11 +124,15 @@ class CheckTeamsAttendee:
         finally:
             excel.Quit()
 
-        return absentees_list, mail_list_str
-
     def export_result(
         self, absentees_list: list[str], mail_list_str: list[str]
     ):
+        """欠席者リストを出力する
+
+        Args:
+            absentees_list (list[str]): 欠席者リスト
+            mail_list_str (list[str]): 欠席者のメールアドレス
+        """
         absentees_list_str = ""
         for absentee in absentees_list:
             absentees_list_str += f"{absentee.split('+',1)[0]}さん，"
@@ -118,14 +142,25 @@ class CheckTeamsAttendee:
         print(f"メアド|\n{mail_list_str}")
         print(f"Teams message|\n{teams_msg}")
         datetime_str = f"{datetime.now():%Y/%m/%d %H:%M:%S}"
-        msg = f"{datetime_str}\n{absentees_list_str}\n{mail_list_str}\n{teams_msg}\n"
+        msg = f"{datetime_str}\n{absentees_list_str}\n"
+        msg += f"{mail_list_str}\n{teams_msg}\n"
         with self.RESULT_FILENAME.open("w", encoding="utf-8") as result_f:
             result_f.write(msg)
 
     def format_name(self, raw_name: str):
-        # 氏名の空白文字の削除とアルファベットの小文字への統一を行う
+        """氏名の空白文字の削除とアルファベットの大小文字の統一を行う
+
+        Args:
+            raw_name (str): もとの名前の文字列
+
+        Returns:
+            str: 整形された名前の文字列
+        """
+        # 先頭の1文字目を大文字，他を小文字に変換する
         formatted_name = raw_name.capitalize()
+        # 空白文字を+に変換する
         formatted_name = re.sub(" |\u3000", "+", formatted_name)
+
         return formatted_name
 
 
