@@ -1,103 +1,134 @@
 import csv
 import re
 from pathlib import Path
-from getpass import getpass
 from tkinter import filedialog
 from datetime import datetime
+import argparse
 
 import win32com.client
 
 
-def read_atendance_list(do_forcibly_open_gui_dialog=False):
-    # 出席者リストのファイルを選択する
-    meeting_attendance_list_csv = Path("meetingAttendanceList.csv")
-    if do_forcibly_open_gui_dialog is True or not meeting_attendance_list_csv.exists():
-        idir = "~/Downloads"
-        filetype = [("出席者リスト", "*.csv")]
-        meeting_attendance_list_csv = filedialog.askopenfilename(
-            filetypes=filetype, initialdir=idir
+class CheckTeamsAttendee:
+    def __init__(self):
+        # 初期化する
+        self.PROJ_DIRNAME = Path(__file__).resolve().parents[1]
+        self.EXCEL_FILENAME = self.PROJ_DIRNAME / "研究会用名簿_20211014.xlsx"
+        self.PASSWD_FILENAME = self.PROJ_DIRNAME / "password.txt"
+        self.RESULT_FILENAME = self.PROJ_DIRNAME / "result.txt"
+
+    def main(self):
+        # Debug modeを判定する
+        parser = argparse.ArgumentParser(
+            description="Run program with debug mode."
         )
-        if meeting_attendance_list_csv == "":
-            raise FileNotFoundError("Canceled")
+        parser.add_argument(
+            "--debug", help="Debug mode", action="store_true",
+        )
+        args = parser.parse_args()
+        IS_DEBUG_MODE = args.debug
 
-    # 出席者リストのファイルからファイルを作成する
-    attendees_list = []
-    with open(meeting_attendance_list_csv, encoding="utf-16") as meeting_attendance_list_f:
-        reader = csv.reader(meeting_attendance_list_f, delimiter="\t")
-        for i, row in enumerate(reader):
-            if i == 0:  # headerをパスする
-                pass
-            temp_attendee_name = format_name(row[0])
-            attendees_list.append(temp_attendee_name)
-    # print(attendees_list)
-    return attendees_list
+        # 名簿とパスワードファイルの存在を確認する
+        if not self.EXCEL_FILENAME.exists():
+            raise FileNotFoundError(
+                f"Download and save as {self.EXCEL_FILENAME}"
+            )
+        if not self.PASSWD_FILENAME.exists():
+            raise FileNotFoundError(f"Create {self.PASSWD_FILENAME}")
 
+        # 出席者リストのファイルを選択する
+        # Debug modeのときは，./meetingAttendanceList.csvを用いる
+        meeting_attendance_list_csv =\
+            self.PROJ_DIRNAME / "meetingAttendanceList.csv"
+        if IS_DEBUG_MODE is False:
+            idir = "~/Downloads"
+            filetype = [("出席者リスト", "*.csv")]
+            temp_meeting_attendance_list_csv = filedialog.askopenfilename(
+                filetypes=filetype, initialdir=idir
+            )
+            if temp_meeting_attendance_list_csv == "":
+                raise FileNotFoundError("Canceled")
+            meeting_attendance_list_csv = Path(
+                temp_meeting_attendance_list_csv
+            )
 
-def read_excel():
-    # 初期化する
-    EXCEL_FILENAME = Path("研究会用名簿_20211014.xlsx").resolve()
-    PASSWD_FILENAME = Path("password.txt")
+        # 出席者リストを取得する
+        attendees_list = self.get_attendees_list_from_csv(
+            meeting_attendance_list_csv
+        )
+        self.read_excel(attendees_list)
 
-    # 名簿とパスワードの存在を確認する
-    if not EXCEL_FILENAME.exists():
-        print("研究会用名簿_20211014.xlsxをダウンロードしてください")
-    if PASSWD_FILENAME.exists():
-        with open("password.txt", encoding="utf-8") as passwd_f:
+    def get_attendees_list_from_csv(self, meeting_attendance_list_csv: Path):
+        # 出席者リストのファイルからファイルを作成する
+        attendees_list = []
+        with meeting_attendance_list_csv.open(
+            encoding="utf-16"
+        ) as meeting_attendance_list_f:
+            reader = csv.reader(meeting_attendance_list_f, delimiter="\t")
+            for i, row in enumerate(reader):
+                if i == 0:  # headerをパスする
+                    pass
+                temp_attendee_name = self.format_name(row[0])
+                attendees_list.append(temp_attendee_name)
+        # print(attendees_list)
+        return attendees_list
+
+    def read_excel(self, attendees_list: list[str]):
+        # Get password from password file
+        with self.PASSWD_FILENAME.open(encoding="utf-8") as passwd_f:
             passwd = passwd_f.read().strip()
-    else:
-        passwd = getpass("Password: ")
-        passwd = passwd.strip()
 
-    # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
-    atendance_list = read_atendance_list(True)
-    absentee_list = []
-    try:
-        excel = win32com.client.Dispatch('Excel.Application')
-        workbook = excel.Workbooks.Open(
-            EXCEL_FILENAME, False, False, None, passwd
-        )
-        worksheet = workbook.Worksheets[0]
-        mail_list_str = ""
-        for i in range(60):
-            temp_name = worksheet.Cells.Item(i + 1, 2).Value
-            if temp_name is None:
-                break
-            temp_name = format_name(temp_name)
-            do_attend = temp_name in atendance_list
-            if do_attend is False:
-                # print(temp_name, do_attend)
-                temp_mail = worksheet.Cells.Item(i + 1, 4)
-                mail_list_str += f"{temp_mail},"
-                absentee_list.append(temp_name)
-        if len(absentee_list) == 0:
-            print("学生全員の出席が確認できました")
-        else:
-            export_result(absentee_list, mail_list_str)
-    finally:
-        excel.Quit()
+        # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
+        absentees_list = []
+        try:
+            excel = win32com.client.Dispatch('Excel.Application')
+            workbook = excel.Workbooks.Open(
+                self.EXCEL_FILENAME, False, False, None, passwd
+            )
+            worksheet = workbook.Worksheets[0]
+            mail_list_str = ""
+            for i in range(60):
+                temp_name = worksheet.Cells.Item(i + 1, 2).Value
+                if temp_name is None:
+                    break
+                temp_name = self.format_name(temp_name)
+                do_attend = temp_name in attendees_list
+                if do_attend is False:
+                    # print(temp_name, do_attend)
+                    temp_mail = worksheet.Cells.Item(i + 1, 4)
+                    mail_list_str += f"{temp_mail},"
+                    absentees_list.append(temp_name)
+            if len(absentees_list) == 0:
+                print("学生全員の出席が確認できました")
+            else:
+                self.export_result(absentees_list, mail_list_str)
+        finally:
+            excel.Quit()
 
+        return absentees_list, mail_list_str
 
-def export_result(absentee_list, mail_list_str):
-    absentee_list_str = ""
-    for absentee in absentee_list:
-        absentee_list_str += f"{absentee.split('+',1)[0]}さん，"
-    absentee_list_str = absentee_list_str[0:-1]
-    teams_msg = f"現在，{absentee_list_str}の出席が確認できておりません"
-    print(f"氏名|\n{absentee_list_str}")
-    print(f"メアド|\n{mail_list_str}")
-    print(f"Teams message|\n{teams_msg}")
-    datetime_str = f"{datetime.now():%Y/%m/%d %H:%M:%S}"
-    msg = f"{datetime_str}\n{absentee_list_str}\n{mail_list_str}\n{teams_msg}\n"
-    with open("result.txt", "w", encoding="utf-8") as result_f:
-        result_f.write(msg)
+    def export_result(
+        self, absentees_list: list[str], mail_list_str: list[str]
+    ):
+        absentees_list_str = ""
+        for absentee in absentees_list:
+            absentees_list_str += f"{absentee.split('+',1)[0]}さん，"
+        absentees_list_str = absentees_list_str[0:-1]
+        teams_msg = f"現在，{absentees_list_str}の出席が確認できておりません"
+        print(f"氏名|\n{absentees_list_str}")
+        print(f"メアド|\n{mail_list_str}")
+        print(f"Teams message|\n{teams_msg}")
+        datetime_str = f"{datetime.now():%Y/%m/%d %H:%M:%S}"
+        msg = f"{datetime_str}\n{absentees_list_str}\n{mail_list_str}\n{teams_msg}\n"
+        with self.RESULT_FILENAME.open("w", encoding="utf-8") as result_f:
+            result_f.write(msg)
 
-
-def format_name(raw_name):
-    # 氏名の空白文字の削除とアルファベットの小文字への統一を行う
-    formatted_name = raw_name.capitalize()
-    formatted_name = re.sub(" |\u3000", "+", formatted_name)
-    return formatted_name
+    def format_name(self, raw_name: str):
+        # 氏名の空白文字の削除とアルファベットの小文字への統一を行う
+        formatted_name = raw_name.capitalize()
+        formatted_name = re.sub(" |\u3000", "+", formatted_name)
+        return formatted_name
 
 
 if __name__ == "__main__":
-    read_excel()
+    check_teams_attendee = CheckTeamsAttendee()
+    check_teams_attendee.main()
