@@ -114,7 +114,7 @@ class CheckTeamsAttendee:
                 do_attend = temp_name in attendees_list
                 if do_attend is False:
                     # print(temp_name, do_attend)
-                    temp_mail = worksheet.Cells.Item(i + 1, 4)
+                    temp_mail = worksheet.Cells.Item(i + 1, 4).Value
                     mail_list_str += f"{temp_mail},"
                     absentees_list.append(temp_name)
             if len(absentees_list) == 0:
@@ -148,7 +148,8 @@ class CheckTeamsAttendee:
             result_f.write(msg)
 
     def format_name(self, raw_name: str):
-        """氏名の空白文字の削除とアルファベットの大小文字の統一を行う
+        """氏名の空白文字の削除とアルファベットの大小文字の統一を行う．
+        これは，Teams上で英字で氏名が登録されている人に対応するためのものである．
 
         Args:
             raw_name (str): もとの名前の文字列
