@@ -6,7 +6,7 @@
 *.csv
 
 # パスワードファイル
-password.txt
+password*.txt
 
 # 結果のファイル
 result.txt
