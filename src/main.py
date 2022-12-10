@@ -13,7 +13,7 @@ class CheckTeamsAttendee:
         """初期化する
         """
         self.PROJ_DIRNAME = Path(__file__).resolve().parents[1]
-        self.EXCEL_FILENAME = self.PROJ_DIRNAME / "平田班名簿_出欠確認用_20220517.xlsx"
+        self.DEFAULT_ROSTER_FILENAME = self.PROJ_DIRNAME / "roster.xlsx"
         self.RESULT_FILENAME = self.PROJ_DIRNAME / "result.txt"
 
     def main(self):
@@ -21,7 +21,6 @@ class CheckTeamsAttendee:
 
         Raises:
             FileNotFoundError: 名簿のエクセルファイルが見つからなかったとき
-            FileNotFoundError: パスワードファイルが見つからなかったとき
             FileNotFoundError: ファイルの選択がキャンセルされたとき
         """
         # Debug modeを判定する
@@ -31,19 +30,26 @@ class CheckTeamsAttendee:
         parser.add_argument(
             "--debug", help="Debug mode", action="store_true",
         )
+        parser.add_argument(
+            "--roster", type=Path, help="Roster filename",
+        )
         args = parser.parse_args()
         IS_DEBUG_MODE = args.debug
+        ROSTER_FILENAME = (
+            args.roster if args.roster else self.DEFAULT_ROSTER_FILENAME
+        )
 
         # 名簿ファイルの存在を確認する
-        if not self.EXCEL_FILENAME.exists():
+        if not ROSTER_FILENAME.exists():
             raise FileNotFoundError(
-                f"Could not be found: {self.EXCEL_FILENAME}"
+                f"Could not be found: {ROSTER_FILENAME}"
             )
 
         # 出席者リストのファイルを選択する
         # Debug modeのときは，./meetingAttendanceList.csvを用いる
-        meeting_attendance_list_csv =\
+        meeting_attendance_list_csv = (
             self.PROJ_DIRNAME / "meetingAttendanceList.csv"
+        )
         if IS_DEBUG_MODE is False:
             idir = "~/Downloads"
             filetype = [("出席者リスト", "*.csv")]
@@ -60,7 +66,7 @@ class CheckTeamsAttendee:
         attendees_list = self.get_attendees_list_from_csv(
             meeting_attendance_list_csv
         )
-        self.read_excel(attendees_list)
+        self.collate_attendees_with_roster(attendees_list, ROSTER_FILENAME)
 
     def get_attendees_list_from_csv(self, meeting_attendance_list_csv: Path):
         """出席者リストをCSVファイルから取得する
@@ -86,7 +92,9 @@ class CheckTeamsAttendee:
                 attendees_list.append(temp_attendee_name)
         return attendees_list
 
-    def read_excel(self, attendees_list: list[str]):
+    def collate_attendees_with_roster(
+        self, attendees_list: list[str], roster_filename: Path,
+    ):
         """名簿のエクセルファイルを読む
 
         Args:
@@ -94,7 +102,7 @@ class CheckTeamsAttendee:
         """
         # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
         absentees_list = []
-        workbook = openpyxl.load_workbook(self.EXCEL_FILENAME)
+        workbook = openpyxl.load_workbook(roster_filename)
         worksheet = workbook.worksheets[0]
         email_list_str = ""
         for row in worksheet.values:

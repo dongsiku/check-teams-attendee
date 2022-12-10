@@ -5,15 +5,25 @@
 ## 環境
 
 以下の環境で，動作が確認されている．
-- OS: Windows 10
+
+- OS: Windows 10, Windows 11
 - Python: 3.10.8
+
+動作は確認できていないものの，macOSやLinuxでも使えるはずである．ただし，本文書では基本的にWindows OSでの動作を想定している．
 
 ## 初期設定
 
 初期設定を示す．ただし，Pythonがインストールされていない場合は，[このサイト](https://muneue-suwa.github.io/my-site-prototype/docs/python-ja/install-pyenv-win)などを参考に，[公式ホームページ](https://www.python.org/)から，ダウンロード＆インストールしておく．
 
-1. `init.bat`をクリックする．`.env`フォルダが生成されたら成功！
-2. `check-teams-attendee/`に名簿ファイル`名簿.xlsx`を保存する．Excelファイルのパスワードは解除しておく．
+1. `init.bat`をクリックする．`.env`フォルダが生成されたら成功！ないしは，以下のコマンドを実行する．
+    ```powershell
+    python -m venv .env
+    .env\Scripts\pip install -U pip
+    # .env/bin/pip install -U pip  # macOS, Linuxの場合
+    .env\Scripts\pip install -r requirements.txt
+    # .env/bin/pip install -r requirements.txt  # macOS, Linuxの場合
+    ```
+2. `check-teams-attendee/`に名簿ファイルを保存する．特にこだわりがなければ，`roster.xlsx`とする（他のファイル名を希望する場合については後述する）．Excelファイルのパスワードは解除しておく．
 3. ~~`check-teams-attendee/`に`password.txt`を作成し，パスワードを保存する．~~ （パスワード解除機能は削除されたため，これは不要である）
 
 ### 名簿のExcelファイルのフォーマット
@@ -28,17 +38,41 @@
 なお，以下の情報は無視される．
 - ヘッダー（1行目）
 - 区分とフリガナ：研究室の名簿ファイルを流用したものであるため，残されているが，プログラムからはこれらの情報を読み込まない．
+
 ## 使い方
 
 1. Teamsからダウンロードした主席者ファイルをダウンロードする．これは，会議を立ち上げたアカウントからのみ可能である．
-2. `run.bat`をクリックする．
+2. `run.bat`をクリックする．あるいは，以下のコマンドを実行する．
+    ```powershell
+    .env\Scripts\python src\main.py
+    # .env/bin/python src/main.py  # macOS, Linuxの場合
+    ```
 3. ファイルを選択するダイアログが表示されるため，Teamsからダウンロードした主席者ファイルを選択する．
 
 もし，出力に文字化けが発生する場合は，同じ内容が`check-teams-attendee/result.txt`にも保存されるため，これを確認すればよい．
 
+### 任意の名簿ファイルを扱う場合
+
+コマンドライン引数`--roster`を使って指定する．例えば，`my_roster.xlsx`を使用する場合は，以下のように指定する．
+
+```powershell
+.env\Scripts\python src\main.py --roster my_roster.xlsx
+# .env/bin/python src/main.py --roster my_roster.xlsx  # macOS, Linuxの場合
+```
+
 ## 再インストール方法
 
 プログラムの保存場所を移動させたときなどに行う．`.env/`を削除した後，初期設定と同じ手順を実行する．
+
+### macOSやLinuxの場合
+
+`.env/`が隠しファイルとして扱われるかもしれない．その場合は，以下のコマンドで削除を行う．
+
+```bash
+ls -fl | grep .env  # 存在の有無を調査する
+rm -rf .env
+ls -fl | grep .env  # 再度，存在の有無を調査する
+```
 
 ## 本プログラムの問題点
 

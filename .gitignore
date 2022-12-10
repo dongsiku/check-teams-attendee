@@ -7,3 +7,8 @@
 
 # 結果のファイル
 result.txt
+
+# 任意のバッチファイル
+!init.bat
+!run.bat
+*.bat
