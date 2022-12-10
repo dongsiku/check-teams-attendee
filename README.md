@@ -6,15 +6,15 @@
 
 以下の環境で，動作が確認されている．
 - OS: Windows 10
-- Python: 3.10.2
+- Python: 3.10.8
 
 ## 初期設定
 
 初期設定を示す．ただし，Pythonがインストールされていない場合は，[このサイト](https://muneue-suwa.github.io/my-site-prototype/docs/python-ja/install-pyenv-win)などを参考に，[公式ホームページ](https://www.python.org/)から，ダウンロード＆インストールしておく．
 
 1. `init.bat`をクリックする．`.env`フォルダが生成されたら成功！
-2. `check-teams-attendee/`に名簿ファイル`研究会用名簿_20211014.xlsx`を保存する．
-3. `check-teams-attendee/`に`password.txt`を作成し，パスワードを保存する．
+2. `check-teams-attendee/`に名簿ファイル`名簿.xlsx`を保存する．Excelファイルのパスワードは解除しておく．
+3. ~~`check-teams-attendee/`に`password.txt`を作成し，パスワードを保存する．~~ （パスワード解除機能は削除されたため，これは不要である）
 
 ### 名簿のExcelファイルのフォーマット
 

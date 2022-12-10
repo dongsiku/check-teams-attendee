@@ -5,8 +5,5 @@
 *.xlsx
 *.csv
 
-# パスワードファイル
-password*.txt
-
 # 結果のファイル
 result.txt

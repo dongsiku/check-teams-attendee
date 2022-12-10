@@ -5,7 +5,7 @@ from tkinter import filedialog
 from datetime import datetime
 import argparse
 
-import win32com.client
+import openpyxl
 
 
 class CheckTeamsAttendee:
@@ -13,8 +13,7 @@ class CheckTeamsAttendee:
         """初期化する
         """
         self.PROJ_DIRNAME = Path(__file__).resolve().parents[1]
-        self.EXCEL_FILENAME = self.PROJ_DIRNAME / "研究会用名簿_20211014.xlsx"
-        self.PASSWD_FILENAME = self.PROJ_DIRNAME / "password.txt"
+        self.EXCEL_FILENAME = self.PROJ_DIRNAME / "平田班名簿_出欠確認用_20220517.xlsx"
         self.RESULT_FILENAME = self.PROJ_DIRNAME / "result.txt"
 
     def main(self):
@@ -35,13 +34,11 @@ class CheckTeamsAttendee:
         args = parser.parse_args()
         IS_DEBUG_MODE = args.debug
 
-        # 名簿とパスワードファイルの存在を確認する
+        # 名簿ファイルの存在を確認する
         if not self.EXCEL_FILENAME.exists():
             raise FileNotFoundError(
-                f"Download and save as {self.EXCEL_FILENAME}"
+                f"Could not be found: {self.EXCEL_FILENAME}"
             )
-        if not self.PASSWD_FILENAME.exists():
-            raise FileNotFoundError(f"Create {self.PASSWD_FILENAME}")
 
         # 出席者リストのファイルを選択する
         # Debug modeのときは，./meetingAttendanceList.csvを用いる
@@ -82,7 +79,9 @@ class CheckTeamsAttendee:
             reader = csv.reader(meeting_attendance_list_f, delimiter="\t")
             for i, row in enumerate(reader):
                 if i == 0:  # headerをパスする
-                    pass
+                    continue
+                elif len(row) == 0:
+                    continue
                 temp_attendee_name = self.format_name(row[0])
                 attendees_list.append(temp_attendee_name)
         return attendees_list
@@ -93,45 +92,34 @@ class CheckTeamsAttendee:
         Args:
             attendees_list (list[str]): 出席者リスト
         """
-        # Get password from password file
-        with self.PASSWD_FILENAME.open(encoding="utf-8") as passwd_f:
-            passwd = passwd_f.read().strip()
-
         # Excelファイルと出席者リストを比較し，未確認者の氏名とメールアドレスを取得する
         absentees_list = []
-        try:
-            excel = win32com.client.Dispatch('Excel.Application')
-            workbook = excel.Workbooks.Open(
-                self.EXCEL_FILENAME, False, False, None, passwd
-            )
-            worksheet = workbook.Worksheets[0]
-            mail_list_str = ""
-            for i in range(60):
-                temp_name = worksheet.Cells.Item(i + 1, 2).Value
-                if temp_name is None:
-                    break
-                temp_name = self.format_name(temp_name)
-                do_attend = temp_name in attendees_list
-                if do_attend is False:
-                    # print(temp_name, do_attend)
-                    temp_mail = worksheet.Cells.Item(i + 1, 4).Value
-                    mail_list_str += f"{temp_mail},"
-                    absentees_list.append(temp_name)
-            if len(absentees_list) == 0:
-                print("学生全員の出席が確認できました")
-            else:
-                self.export_result(absentees_list, mail_list_str)
-        finally:
-            excel.Quit()
+        workbook = openpyxl.load_workbook(self.EXCEL_FILENAME)
+        worksheet = workbook.worksheets[0]
+        email_list_str = ""
+        for row in worksheet.values:
+            _, temp_name, _, email_address = row[0:4]
+            if temp_name is None:
+                break
+            formatted_name = self.format_name(temp_name)
+            do_attend = formatted_name in attendees_list
+            if do_attend is False:
+                # print(temp_name, do_attend)
+                email_list_str += f"{email_address},"
+                absentees_list.append(formatted_name)
+        if len(absentees_list) == 0:
+            print("学生全員の出席が確認できました")
+        else:
+            self.export_result(absentees_list, email_list_str)
 
     def export_result(
-        self, absentees_list: list[str], mail_list_str: list[str]
+        self, absentees_list: list[str], email_list_str: list[str]
     ):
         """欠席者リストを出力する
 
         Args:
             absentees_list (list[str]): 欠席者リスト
-            mail_list_str (list[str]): 欠席者のメールアドレス
+            email_list_str (list[str]): 欠席者のメールアドレス
         """
         absentees_list_str = ""
         for absentee in absentees_list:
@@ -139,11 +127,11 @@ class CheckTeamsAttendee:
         absentees_list_str = absentees_list_str[0:-1]
         teams_msg = f"現在，{absentees_list_str}の出席が確認できておりません"
         print(f"氏名|\n{absentees_list_str}")
-        print(f"メアド|\n{mail_list_str}")
+        print(f"メアド|\n{email_list_str}")
         print(f"Teams message|\n{teams_msg}")
         datetime_str = f"{datetime.now():%Y/%m/%d %H:%M:%S}"
         msg = f"{datetime_str}\n{absentees_list_str}\n"
-        msg += f"{mail_list_str}\n{teams_msg}\n"
+        msg += f"{email_list_str}\n{teams_msg}\n"
         with self.RESULT_FILENAME.open("w", encoding="utf-8") as result_f:
             result_f.write(msg)
 
