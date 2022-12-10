@@ -25,19 +25,23 @@ class CheckTeamsAttendee:
         """
         # Debug modeを判定する
         parser = argparse.ArgumentParser(
-            description="Run program with debug mode."
+            description=(
+                "Check Microsoft Teams meetings attendees "
+                "using name list file"
+            )
         )
         parser.add_argument(
-            "--debug", help="Debug mode", action="store_true",
+            "--debug", help="run program with debug mode",
+            action="store_true",
         )
         parser.add_argument(
-            "--roster", type=Path, help="Roster filename",
+            "--roster", type=Path,
+            help=f"roster filename. default: {self.DEFAULT_ROSTER_FILENAME}",
+            default=self.DEFAULT_ROSTER_FILENAME,
         )
         args = parser.parse_args()
         IS_DEBUG_MODE = args.debug
-        ROSTER_FILENAME = (
-            args.roster if args.roster else self.DEFAULT_ROSTER_FILENAME
-        )
+        ROSTER_FILENAME = args.roster
 
         # 名簿ファイルの存在を確認する
         if not ROSTER_FILENAME.exists():
